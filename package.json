@@ -1,0 +1,11 @@
+{
+  "name": "stock-analyzer",
+  "version": "1.0.0",
+  "description": "A 股技术指标分析工具",
+  "scripts": {
+    "start": "npx serve -s . -l $PORT"
+  },
+  "dependencies": {
+    "serve": "^14.2.0"
+  }
+}

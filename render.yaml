@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: stock-analyzer
+    runtime: static
+    buildCommand: ""
+    staticPublishPath: .
