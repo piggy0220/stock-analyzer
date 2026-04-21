@@ -112,42 +112,19 @@
             document.getElementById('result').classList.add('hidden');
 
             try {
-                // 使用腾讯财经 API 获取数据
-                const response = await fetch(`https://qt.gtimg.cn/q=${code}`);
-                const text = await response.text();
-                const data = parseTencentData(text, code);
+                // 请求自己的后端 API
+                const response = await fetch(`/api/stock?code=${code}`);
+                const data = await response.json();
 
-                if (!data) throw new Error('数据解析失败');
+                if (data.error) throw new Error(data.error);
 
                 displayResults(data);
             } catch (err) {
                 alert('获取数据失败: ' + err.message);
+                console.error(err);
             } finally {
                 document.getElementById('loading').classList.add('hidden');
             }
-        }
-
-        function parseTencentData(text, code) {
-            const match = text.match(/v_[^=]+="([^"]+)"/);
-            if (!match) return null;
-            const parts = match[1].split('~');
-            if (parts.length < 45) return null;
-
-            return {
-                name: parts[1],
-                price: parseFloat(parts[3]),
-                change: parseFloat(parts[5]),
-                volume: parseFloat(parts[6]),
-                turnover: parseFloat(parts[38]),
-                high: parseFloat(parts[33]),
-                low: parseFloat(parts[34]),
-                open: parseFloat(parts[5]),
-                prevClose: parseFloat(parts[4]),
-                pe: parseFloat(parts[39]) || 0,
-                pb: parseFloat(parts[46]) || 0,
-                marketCap: parseFloat(parts[44]) || 0,
-                code: code
-            };
         }
 
         function calculateMACD(prices) {

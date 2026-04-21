@@ -1,6 +1,6 @@
 services:
   - type: web
     name: stock-analyzer
-    runtime: static
-    buildCommand: ""
-    staticPublishPath: .
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server.js

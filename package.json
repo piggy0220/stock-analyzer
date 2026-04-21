@@ -2,10 +2,12 @@
   "name": "stock-analyzer",
   "version": "1.0.0",
   "description": "A 股技术指标分析工具",
+  "main": "server.js",
   "scripts": {
-    "start": "npx serve -s . -l $PORT"
+    "start": "node server.js"
   },
   "dependencies": {
-    "serve": "^14.2.0"
+    "express": "^4.18.2",
+    "axios": "^1.6.0"
   }
 }
