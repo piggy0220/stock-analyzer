@@ -10,80 +10,144 @@
         .score-ring { transition: stroke-dashoffset 1s ease-in-out; }
         .fade-in { animation: fadeIn 0.5s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .period-btn.active { background-color: #3B82F6; color: white; }
+        .period-btn { background-color: #374151; color: #9CA3AF; }
+        .period-btn:hover:not(.active) { background-color: #4B5563; color: #D1D5DB; }
+        .chart-container { background: #1f2937; border-radius: 8px; margin-bottom: 16px; }
+        .chart-title { padding: 8px 12px; font-size: 13px; color: #9CA3AF; border-bottom: 1px solid #374151; }
     </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen">
-    <div class="container mx-auto px-4 py-8 max-w-6xl">
-        <header class="text-center mb-8">
-            <h1 class="text-3xl font-bold mb-2">📈 股票技术指标分析工具</h1>
-            <p class="text-gray-400">输入 A 股代码，自动分析 MACD、KDJ、成交量、换手率等指标</p>
+    <div class="container mx-auto px-4 py-6">
+        
+        <header class="text-center mb-6">
+            <h1 class="text-2xl font-bold mb-2">📈 股票技术指标分析</h1>
+            <p class="text-gray-400 text-sm">输入 A 股代码或名称，查看K线、MACD、KDJ、成交量</p>
         </header>
 
-        <div class="bg-gray-800 rounded-lg p-6 mb-6">
-            <div class="flex gap-4">
-                <input type="text" id="stockCode" placeholder="输入股票代码或名称，如: 002230 或 科大讯飞" 
-                    class="flex-1 bg-gray-700 border border-gray-600 rounded px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500">
-                <button onclick="analyzeStock()" 
-                    class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded font-medium transition">
-                    分析
-                </button>
+        <!-- 上面区域：宽一点（max-w-5xl） -->
+        <div class="max-w-5xl mx-auto">
+            <div class="bg-gray-800 rounded-lg p-4 mb-6">
+                <div class="flex gap-3">
+                    <input type="text" id="stockCode" placeholder="输入股票代码或名称，如: 002230 或 科大讯飞" 
+                        class="flex-1 bg-gray-700 border border-gray-600 rounded px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500">
+                    <button onclick="analyzeStock()" 
+                        class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded font-medium transition">
+                        分析
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">支持格式: 002230, 600519.SH, 科大讯飞, 贵州茅台</p>
             </div>
-            <p class="text-sm text-gray-500 mt-2">支持格式: 002230, 600519.SH, 科大讯飞, 贵州茅台</p>
-        </div>
 
-        <div id="loading" class="hidden text-center py-12">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-            <p class="mt-4 text-gray-400">正在分析数据...</p>
-        </div>
+            <div id="loading" class="hidden text-center py-12">
+                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mx-auto"></div>
+                <p class="mt-4 text-gray-400 text-sm">正在加载数据...</p>
+            </div>
 
-        <div id="result" class="hidden">
-            <!-- 综合评分 -->
-            <div class="bg-gray-800 rounded-lg p-6 mb-6 text-center">
-                <h2 class="text-xl font-semibold mb-4">综合评分</h2>
-                <div class="relative w-32 h-32 mx-auto">
-                    <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                        <circle cx="50" cy="50" r="45" stroke="#374151" stroke-width="8" fill="none"/>
-                        <circle id="scoreCircle" cx="50" cy="50" r="45" stroke="#3B82F6" stroke-width="8" fill="none"
-                            stroke-dasharray="283" stroke-dashoffset="283" stroke-linecap="round" class="score-ring"/>
-                    </svg>
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <span id="scoreValue" class="text-3xl font-bold">0</span>
+            <div id="result" class="hidden">
+                <!-- 综合评分 -->
+                <div class="bg-gray-800 rounded-lg p-6 mb-4 text-center">
+                    <h2 class="text-xl font-semibold mb-4">综合评分</h2>
+                    <div class="relative w-32 h-32 mx-auto">
+                        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="45" stroke="#374151" stroke-width="8" fill="none"/>
+                            <circle id="scoreCircle" cx="50" cy="50" r="45" stroke="#3B82F6" stroke-width="8" fill="none"
+                                stroke-dasharray="283" stroke-dashoffset="283" stroke-linecap="round" class="score-ring"/>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span id="scoreValue" class="text-3xl font-bold">0</span>
+                        </div>
+                    </div>
+                    <p id="scoreText" class="mt-4 text-lg"></p>
+                </div>
+
+                <!-- 指标卡片 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-gray-800 rounded-lg p-4 fade-in">
+                        <h3 class="text-sm text-gray-400 mb-1">MACD</h3>
+                        <p id="macdValue" class="text-2xl font-bold">--</p>
+                        <p id="macdSignal" class="text-sm mt-1">--</p>
+                    </div>
+                    <div class="bg-gray-800 rounded-lg p-4 fade-in">
+                        <h3 class="text-sm text-gray-400 mb-1">KDJ</h3>
+                        <p id="kdjValue" class="text-2xl font-bold">--</p>
+                        <p id="kdjSignal" class="text-sm mt-1">--</p>
+                    </div>
+                    <div class="bg-gray-800 rounded-lg p-4 fade-in">
+                        <h3 class="text-sm text-gray-400 mb-1">成交量</h3>
+                        <p id="volumeValue" class="text-2xl font-bold">--</p>
+                        <p id="volumeSignal" class="text-sm mt-1">--</p>
+                    </div>
+                    <div class="bg-gray-800 rounded-lg p-4 fade-in">
+                        <h3 class="text-sm text-gray-400 mb-1">换手率</h3>
+                        <p id="turnoverValue" class="text-2xl font-bold">--</p>
+                        <p id="turnoverSignal" class="text-sm mt-1">--</p>
                     </div>
                 </div>
-                <p id="scoreText" class="mt-4 text-lg"></p>
-            </div>
 
-            <!-- 指标卡片 -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div class="bg-gray-800 rounded-lg p-4 fade-in">
-                    <h3 class="text-sm text-gray-400 mb-1">MACD</h3>
-                    <p id="macdValue" class="text-2xl font-bold">--</p>
-                    <p id="macdSignal" class="text-sm mt-1">--</p>
-                </div>
-                <div class="bg-gray-800 rounded-lg p-4 fade-in">
-                    <h3 class="text-sm text-gray-400 mb-1">KDJ</h3>
-                    <p id="kdjValue" class="text-2xl font-bold">--</p>
-                    <p id="kdjSignal" class="text-sm mt-1">--</p>
-                </div>
-                <div class="bg-gray-800 rounded-lg p-4 fade-in">
-                    <h3 class="text-sm text-gray-400 mb-1">成交量</h3>
-                    <p id="volumeValue" class="text-2xl font-bold">--</p>
-                    <p id="volumeSignal" class="text-sm mt-1">--</p>
-                </div>
-                <div class="bg-gray-800 rounded-lg p-4 fade-in">
-                    <h3 class="text-sm text-gray-400 mb-1">换手率</h3>
-                    <p id="turnoverValue" class="text-2xl font-bold">--</p>
-                    <p id="turnoverSignal" class="text-sm mt-1">--</p>
+                <!-- 股票信息 + 周期切换 -->
+                <div class="bg-gray-800 rounded-lg p-4 mb-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 id="stockName" class="text-xl font-bold">--</h2>
+                            <p id="stockCodeDisplay" class="text-sm text-gray-400">--</p>
+                        </div>
+                        <div class="text-right">
+                            <p id="stockPrice" class="text-2xl font-bold">--</p>
+                            <p id="stockChange" class="text-sm">--</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                        <button onclick="switchPeriod('minute')" class="period-btn px-3 py-1 rounded text-xs transition" data-period="minute">时分</button>
+                        <button onclick="switchPeriod('5day')" class="period-btn px-3 py-1 rounded text-xs transition" data-period="5day">五日</button>
+                        <button onclick="switchPeriod('day')" class="period-btn px-3 py-1 rounded text-xs transition active" data-period="day">日K</button>
+                        <button onclick="switchPeriod('week')" class="period-btn px-3 py-1 rounded text-xs transition" data-period="week">周K</button>
+                        <button onclick="switchPeriod('month')" class="period-btn px-3 py-1 rounded text-xs transition" data-period="month">月K</button>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <!-- 图表 -->
-            <div class="bg-gray-800 rounded-lg p-6 mb-6">
-                <div id="chart" style="width: 100%; height: 400px;"></div>
+        <!-- 下面区域：四个图表窄一点（max-w-3xl） -->
+        <div id="chartsArea" class="max-w-5xl mx-auto hidden">
+            <!-- K线图 -->
+            <div class="chart-container">
+                <div class="chart-title flex justify-between items-center">
+                    <span>K线图</span>
+                    <span id="klineInfo" class="text-xs"></span>
+                </div>
+                <div id="klineChart" style="width: 100%; height: 240px;"></div>
+            </div>
+
+            <!-- 成交量图 -->
+            <div class="chart-container">
+                <div class="chart-title flex justify-between items-center">
+                    <span>成交量</span>
+                    <span id="volumeInfo" class="text-xs"></span>
+                </div>
+                <div id="volumeChart" style="width: 100%; height: 100px;"></div>
+            </div>
+
+            <!-- MACD图 -->
+            <div class="chart-container">
+                <div class="chart-title flex justify-between items-center">
+                    <span>MACD</span>
+                    <span id="macdInfo" class="text-xs">MACD(12,26,9): -- DIF: -- DEA: --</span>
+                </div>
+                <div id="macdChart" style="width: 100%; height: 120px;"></div>
+            </div>
+
+            <!-- KDJ图 -->
+            <div class="chart-container">
+                <div class="chart-title flex justify-between items-center">
+                    <span>KDJ</span>
+                    <span id="kdjInfo" class="text-xs">KDJ(9,3,3): K: -- D: -- J: --</span>
+                </div>
+                <div id="kdjChart" style="width: 100%; height: 120px;"></div>
             </div>
 
             <!-- 详细分析 -->
-            <div class="bg-gray-800 rounded-lg p-6">
+            <div class="bg-gray-800 rounded-lg p-6 mt-4">
                 <h2 class="text-xl font-semibold mb-4">详细分析</h2>
                 <div id="analysis" class="space-y-3 text-gray-300"></div>
             </div>
@@ -91,7 +155,13 @@
     </div>
 
     <script>
-        let chart = null;
+        let klineChart = null;
+        let volumeChart = null;
+        let macdChart = null;
+        let kdjChart = null;
+        let currentStock = null;
+        let currentPeriod = 'day';
+        let currentData = null;
 
         function normalizeCode(code) {
             code = code.trim();
@@ -104,21 +174,36 @@
         }
 
         async function analyzeStock() {
-            const input = document.getElementById('stockCode').value;
-            const code = normalizeCode(input);
-            if (!code) { alert('请输入股票代码'); return; }
+            const input = document.getElementById('stockCode').value.trim();
+            if (!input) { alert('请输入股票代码或名称'); return; }
 
             document.getElementById('loading').classList.remove('hidden');
             document.getElementById('result').classList.add('hidden');
+            document.getElementById('chartsArea').classList.add('hidden');
 
             try {
-                // 请求自己的后端 API
-                const response = await fetch(`/api/stock?code=${code}`);
+                let code = input;
+                if (/^\d+$/.test(input)) {
+                    code = normalizeCode(input);
+                }
+
+                const response = await fetch(`/api/stock?code=${encodeURIComponent(code)}`);
                 const data = await response.json();
 
                 if (data.error) throw new Error(data.error);
 
+                currentStock = data;
+                document.getElementById('stockName').textContent = data.name;
+                document.getElementById('stockCodeDisplay').textContent = data.code;
+                document.getElementById('stockPrice').textContent = data.price.toFixed(2);
+                const changeColor = data.change >= 0 ? 'text-red-500' : 'text-green-500';
+                document.getElementById('stockChange').innerHTML = `<span class="${changeColor}">${data.change >= 0 ? '+' : ''}${data.change}%</span>`;
+                
+                document.getElementById('result').classList.remove('hidden');
+                document.getElementById('chartsArea').classList.remove('hidden');
+                
                 displayResults(data);
+                await loadCharts(data.code, currentPeriod);
             } catch (err) {
                 alert('获取数据失败: ' + err.message);
                 console.error(err);
@@ -127,14 +212,536 @@
             }
         }
 
-        function calculateMACD(prices) {
-            if (prices.length < 35) return null;
-            const ema12 = calculateEMA(prices, 12);
-            const ema26 = calculateEMA(prices, 26);
-            const dif = ema12[ema12.length - 1] - ema26[ema26.length - 1];
-            const dea = calculateEMA(ema12.map((v, i) => v - ema26[i]), 9).pop();
-            const macd = 2 * (dif - dea);
-            return { dif, dea, macd, signal: macd > 0 ? '看多' : '看空' };
+        async function switchPeriod(period) {
+            if (!currentStock) return;
+            currentPeriod = period;
+            
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.period === period);
+            });
+            
+            await loadCharts(currentStock.code, period);
+        }
+
+        async function loadCharts(code, period) {
+            try {
+                const response = await fetch(`/api/kline?code=${encodeURIComponent(code)}&period=${period}`);
+                const result = await response.json();
+                
+                if (result.error) throw new Error(result.error);
+                
+                currentData = result;
+                
+                if (period === 'minute') {
+                    renderMinuteCharts(result.data);
+                } else {
+                    renderKlineCharts(result.data, result);
+                }
+            } catch (err) {
+                console.error('数据加载失败:', err);
+            }
+        }
+
+        function calculateMA(data, period) {
+            const result = [];
+            for (let i = 0; i < data.length; i++) {
+                if (i < period - 1) {
+                    result.push('-');
+                } else {
+                    let sum = 0;
+                    for (let j = 0; j < period; j++) {
+                        sum += data[i - j].close;
+                    }
+                    result.push((sum / period).toFixed(2));
+                }
+            }
+            return result;
+        }
+
+        function renderKlineCharts(data, indicators) {
+            const dates = data.map(d => d.date);
+            const klineData = data.map(d => [d.open, d.close, d.low, d.high]);
+            const volumes = data.map(d => d.volume / 10000);
+            
+            const ma5 = calculateMA(data, 5);
+            const ma10 = calculateMA(data, 10);
+            const ma20 = calculateMA(data, 20);
+
+            const macdData = indicators?.macd;
+            const macdDif = macdData ? macdData.dif : [];
+            const macdDea = macdData ? macdData.dea : [];
+            const macdBar = macdData ? macdData.macd.map(v => v.toFixed(3)) : [];
+            
+            const kdjData = indicators?.kdj;
+            const kdjK = kdjData ? kdjData.k.map(v => v !== null ? v.toFixed(2) : '-') : [];
+            const kdjD = kdjData ? kdjData.d.map(v => v !== null ? v.toFixed(2) : '-') : [];
+            const kdjJ = kdjData ? kdjData.j.map(v => v !== null ? v.toFixed(2) : '-') : [];
+            
+            const volAvg = indicators?.volumeAvg ? indicators.volumeAvg.map(v => (v / 10000).toFixed(2)) : [];
+
+            if (macdData && macdDif.length > 0) {
+                const lastIdx = macdDif.length - 1;
+                document.getElementById('macdInfo').textContent = 
+                    `MACD(12,26,9): ${macdBar[lastIdx]}  DIF: ${macdDif[lastIdx].toFixed(3)}  DEA: ${macdDea[lastIdx].toFixed(3)}`;
+            }
+            if (kdjData && kdjK.length > 0) {
+                const lastIdx = kdjK.length - 1;
+                document.getElementById('kdjInfo').textContent = 
+                    `KDJ(9,3,3): K:${kdjK[lastIdx]}  D:${kdjD[lastIdx]}  J:${kdjJ[lastIdx]}`;
+            }
+            if (data.length > 0) {
+                const last = data[data.length - 1];
+                document.getElementById('klineInfo').textContent = 
+                    `MA5:${ma5[ma5.length-1]}  MA10:${ma10[ma10.length-1]}  MA20:${ma20[ma20.length-1]}`;
+                document.getElementById('volumeInfo').textContent = 
+                    `VOL:${(last.volume/10000).toFixed(2)}万`;
+            }
+
+            const macdSignals = [];
+            if (indicators?.signals) {
+                indicators.signals.filter(s => s.indicator === 'MACD').forEach(s => {
+                    macdSignals.push({
+                        xAxis: s.index,
+                        yAxis: macdBar[s.index] > 0 ? parseFloat(macdBar[s.index]) * 1.2 : parseFloat(macdBar[s.index]) * 1.2,
+                        itemStyle: { color: s.type === 'golden' ? '#ef4444' : '#22c55e' },
+                        label: {
+                            show: true,
+                            position: s.type === 'golden' ? 'top' : 'bottom',
+                            formatter: s.label,
+                            color: s.type === 'golden' ? '#ef4444' : '#22c55e',
+                            fontSize: 9,
+                            fontWeight: 'bold'
+                        }
+                    });
+                });
+            }
+
+            const kdjSignals = [];
+            if (indicators?.signals) {
+                indicators.signals.filter(s => s.indicator === 'KDJ').forEach(s => {
+                    kdjSignals.push({
+                        xAxis: s.index,
+                        yAxis: s.type === 'golden' ? 90 : 10,
+                        itemStyle: { color: s.type === 'golden' ? '#ef4444' : '#22c55e' },
+                        label: {
+                            show: true,
+                            position: s.type === 'golden' ? 'top' : 'bottom',
+                            formatter: s.label,
+                            color: s.type === 'golden' ? '#ef4444' : '#22c55e',
+                            fontSize: 9,
+                            fontWeight: 'bold'
+                        }
+                    });
+                });
+            }
+
+            const volSignals = [];
+            if (indicators?.signals) {
+                indicators.signals.filter(s => s.indicator === 'VOL').forEach(s => {
+                    volSignals.push({
+                        xAxis: s.index,
+                        yAxis: volumes[s.index] * 1.3,
+                        itemStyle: { color: s.type === 'volume_up' ? '#8B5CF6' : '#6B7280' },
+                        label: {
+                            show: true,
+                            position: 'top',
+                            formatter: s.label,
+                            color: s.type === 'volume_up' ? '#8B5CF6' : '#6B7280',
+                            fontSize: 9,
+                            fontWeight: 'bold'
+                        }
+                    });
+                });
+            }
+
+            // 1. K线图
+            if (klineChart) klineChart.dispose();
+            klineChart = echarts.init(document.getElementById('klineChart'));
+            klineChart.setOption({
+                backgroundColor: 'transparent',
+                animation: false,
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: 'rgba(30, 30, 40, 0.95)',
+                    borderColor: '#444',
+                    textStyle: { color: '#fff', fontSize: 11 },
+                    formatter: function(params) {
+                        const idx = params[0].dataIndex;
+                        const d = data[idx];
+                        if (!d) return '';
+                        const color = d.close >= d.open ? '#ef4444' : '#22c55e';
+                        return `<div style="font-size:11px">
+                            <div style="font-weight:bold;margin-bottom:4px">${d.date}</div>
+                            <div>开盘: <span style="color:${color}">${d.open.toFixed(2)}</span></div>
+                            <div>收盘: <span style="color:${color}">${d.close.toFixed(2)}</span></div>
+                            <div>最高: ${d.high.toFixed(2)}</div>
+                            <div>最低: ${d.low.toFixed(2)}</div>
+                            <div>成交量: ${(d.volume/10000).toFixed(2)}万</div>
+                        </div>`;
+                    }
+                },
+                grid: { left: '50', right: '20', top: '10', bottom: '25' },
+                xAxis: {
+                    type: 'category',
+                    data: dates,
+                    axisLine: { lineStyle: { color: '#444' } },
+                    axisLabel: { color: '#666', fontSize: 10 },
+                    axisTick: { show: false }
+                },
+                yAxis: {
+                    scale: true,
+                    axisLine: { show: false },
+                    splitLine: { lineStyle: { color: '#333' } },
+                    axisLabel: { color: '#999', fontSize: 10 }
+                },
+                dataZoom: [{ type: 'inside', start: Math.max(0, 100 - 120/data.length*100), end: 100 }],
+                series: [
+                    {
+                        name: 'K线',
+                        type: 'candlestick',
+                        data: klineData,
+                        itemStyle: { color: '#ef4444', color0: '#22c55e', borderColor: '#ef4444', borderColor0: '#22c55e' }
+                    },
+                    { name: 'MA5', type: 'line', data: ma5, smooth: true, lineStyle: { color: '#F59E0B', width: 1 }, symbol: 'none' },
+                    { name: 'MA10', type: 'line', data: ma10, smooth: true, lineStyle: { color: '#3B82F6', width: 1 }, symbol: 'none' },
+                    { name: 'MA20', type: 'line', data: ma20, smooth: true, lineStyle: { color: '#8B5CF6', width: 1 }, symbol: 'none' }
+                ]
+            });
+
+            // 2. 成交量图
+            if (volumeChart) volumeChart.dispose();
+            volumeChart = echarts.init(document.getElementById('volumeChart'));
+            volumeChart.setOption({
+                backgroundColor: 'transparent',
+                animation: false,
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: 'rgba(30, 30, 40, 0.95)',
+                    borderColor: '#444',
+                    textStyle: { color: '#fff', fontSize: 11 }
+                },
+                grid: { left: '50', right: '20', top: '10', bottom: '25' },
+                xAxis: {
+                    type: 'category',
+                    data: dates,
+                    axisLine: { lineStyle: { color: '#444' } },
+                    axisLabel: { show: false },
+                    axisTick: { show: false }
+                },
+                yAxis: {
+                    scale: true,
+                    axisLine: { show: false },
+                    splitLine: { show: false },
+                    axisLabel: { color: '#999', fontSize: 9, formatter: v => (v/10000).toFixed(0) + '万' }
+                },
+                dataZoom: [{ type: 'inside', start: Math.max(0, 100 - 120/data.length*100), end: 100 }],
+                series: [
+                    {
+                        name: '成交量',
+                        type: 'bar',
+                        data: volumes.map((v, i) => ({
+                            value: v,
+                            itemStyle: { color: klineData[i][1] >= klineData[i][0] ? 'rgba(239,68,68,0.6)' : 'rgba(34,197,94,0.6)' }
+                        })),
+                        barWidth: '60%'
+                    },
+                    {
+                        name: 'MA20',
+                        type: 'line',
+                        data: volAvg,
+                        smooth: true,
+                        lineStyle: { color: '#F59E0B', width: 1 },
+                        symbol: 'none'
+                    },
+                    {
+                        type: 'scatter',
+                        data: [],
+                        markPoint: {
+                            data: volSignals,
+                            symbol: 'circle',
+                            symbolSize: 6,
+                            label: { fontSize: 9 }
+                        }
+                    }
+                ]
+            });
+
+            // 3. MACD图
+            if (macdChart) macdChart.dispose();
+            macdChart = echarts.init(document.getElementById('macdChart'));
+            macdChart.setOption({
+                backgroundColor: 'transparent',
+                animation: false,
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: 'rgba(30, 30, 40, 0.95)',
+                    borderColor: '#444',
+                    textStyle: { color: '#fff', fontSize: 11 },
+                    formatter: function(params) {
+                        const idx = params[0].dataIndex;
+                        return `<div style="font-size:11px">
+                            <div style="font-weight:bold">${dates[idx]}</div>
+                            <div style="color:#3B82F6">DIF: ${macdDif[idx]?.toFixed(3) || '--'}</div>
+                            <div style="color:#F59E0B">DEA: ${macdDea[idx]?.toFixed(3) || '--'}</div>
+                            <div>MACD: ${macdBar[idx] || '--'}</div>
+                        </div>`;
+                    }
+                },
+                grid: { left: '50', right: '20', top: '15', bottom: '25' },
+                xAxis: {
+                    type: 'category',
+                    data: dates,
+                    axisLine: { lineStyle: { color: '#444' } },
+                    axisLabel: { show: false },
+                    axisTick: { show: false }
+                },
+                yAxis: {
+                    scale: true,
+                    axisLine: { show: false },
+                    splitLine: { lineStyle: { color: '#333' } },
+                    axisLabel: { color: '#999', fontSize: 9 }
+                },
+                dataZoom: [{ type: 'inside', start: Math.max(0, 100 - 120/data.length*100), end: 100 }],
+                series: [
+                    {
+                        name: 'MACD',
+                        type: 'bar',
+                        data: macdBar.map((v, i) => ({
+                            value: v,
+                            itemStyle: { color: parseFloat(v) >= 0 ? 'rgba(239,68,68,0.7)' : 'rgba(34,197,94,0.7)' }
+                        })),
+                        barWidth: '50%'
+                    },
+                    {
+                        name: 'DIF',
+                        type: 'line',
+                        data: macdDif.map(v => v.toFixed(3)),
+                        smooth: true,
+                        lineStyle: { color: '#3B82F6', width: 1.5 },
+                        symbol: 'none'
+                    },
+                    {
+                        name: 'DEA',
+                        type: 'line',
+                        data: macdDea.map(v => v.toFixed(3)),
+                        smooth: true,
+                        lineStyle: { color: '#F59E0B', width: 1.5 },
+                        symbol: 'none'
+                    },
+                    {
+                        name: '零轴',
+                        type: 'line',
+                        data: macdBar.map(() => 0),
+                        lineStyle: { color: '#666', width: 0.5, type: 'dashed' },
+                        symbol: 'none',
+                        silent: true
+                    },
+                    {
+                        type: 'scatter',
+                        data: [],
+                        markPoint: {
+                            data: macdSignals,
+                            symbol: 'pin',
+                            symbolSize: 12,
+                            label: { fontSize: 9 }
+                        }
+                    }
+                ]
+            });
+
+            // 4. KDJ图
+            if (kdjChart) kdjChart.dispose();
+            kdjChart = echarts.init(document.getElementById('kdjChart'));
+            kdjChart.setOption({
+                backgroundColor: 'transparent',
+                animation: false,
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: 'rgba(30, 30, 40, 0.95)',
+                    borderColor: '#444',
+                    textStyle: { color: '#fff', fontSize: 11 },
+                    formatter: function(params) {
+                        const idx = params[0].dataIndex;
+                        return `<div style="font-size:11px">
+                            <div style="font-weight:bold">${dates[idx]}</div>
+                            <div style="color:#EC4899">K: ${kdjK[idx]}</div>
+                            <div style="color:#3B82F6">D: ${kdjD[idx]}</div>
+                            <div style="color:#F59E0B">J: ${kdjJ[idx]}</div>
+                        </div>`;
+                    }
+                },
+                grid: { left: '50', right: '20', top: '15', bottom: '25' },
+                xAxis: {
+                    type: 'category',
+                    data: dates,
+                    axisLine: { lineStyle: { color: '#444' } },
+                    axisLabel: { color: '#666', fontSize: 10 },
+                    axisTick: { show: false }
+                },
+                yAxis: {
+                    scale: true,
+                    min: 0,
+                    max: 100,
+                    axisLine: { show: false },
+                    splitLine: { lineStyle: { color: '#333' } },
+                    axisLabel: { color: '#999', fontSize: 9 }
+                },
+                dataZoom: [{ type: 'inside', start: Math.max(0, 100 - 120/data.length*100), end: 100 }],
+                series: [
+                    {
+                        name: 'K',
+                        type: 'line',
+                        data: kdjK,
+                        smooth: true,
+                        lineStyle: { color: '#EC4899', width: 1.5 },
+                        symbol: 'none'
+                    },
+                    {
+                        name: 'D',
+                        type: 'line',
+                        data: kdjD,
+                        smooth: true,
+                        lineStyle: { color: '#3B82F6', width: 1.5 },
+                        symbol: 'none'
+                    },
+                    {
+                        name: 'J',
+                        type: 'line',
+                        data: kdjJ,
+                        smooth: true,
+                        lineStyle: { color: '#F59E0B', width: 1 },
+                        symbol: 'none'
+                    },
+                    {
+                        name: '20',
+                        type: 'line',
+                        data: kdjK.map(() => 20),
+                        lineStyle: { color: 'rgba(34,197,94,0.3)', width: 0.5, type: 'dashed' },
+                        symbol: 'none',
+                        silent: true
+                    },
+                    {
+                        name: '80',
+                        type: 'line',
+                        data: kdjK.map(() => 80),
+                        lineStyle: { color: 'rgba(239,68,68,0.3)', width: 0.5, type: 'dashed' },
+                        symbol: 'none',
+                        silent: true
+                    },
+                    {
+                        type: 'scatter',
+                        data: [],
+                        markPoint: {
+                            data: kdjSignals,
+                            symbol: 'pin',
+                            symbolSize: 12,
+                            label: { fontSize: 9 }
+                        }
+                    }
+                ]
+            });
+
+            // 同步缩放
+            const syncZoom = (source, targets) => {
+                source.on('dataZoom', function(params) {
+                    const opt = source.getOption();
+                    const start = opt.dataZoom[0].start;
+                    const end = opt.dataZoom[0].end;
+                    targets.forEach(t => t.dispatchAction({
+                        type: 'dataZoom',
+                        start: start,
+                        end: end
+                    }));
+                });
+            };
+            
+            syncZoom(klineChart, [volumeChart, macdChart, kdjChart]);
+            syncZoom(volumeChart, [klineChart, macdChart, kdjChart]);
+            syncZoom(macdChart, [klineChart, volumeChart, kdjChart]);
+            syncZoom(kdjChart, [klineChart, volumeChart, macdChart]);
+        }
+
+        function renderMinuteCharts(data) {
+            const times = data.map(d => d.time);
+            const prices = data.map(d => d.price);
+            const volumes = data.map(d => d.volume);
+            
+            let totalAmount = 0, totalVolume = 0;
+            const avgPrices = data.map(d => {
+                totalAmount += d.amount || 0;
+                totalVolume += d.volume || 0;
+                return totalVolume > 0 ? totalAmount / totalVolume : d.price;
+            });
+
+            if (klineChart) klineChart.dispose();
+            klineChart = echarts.init(document.getElementById('klineChart'));
+            klineChart.setOption({
+                backgroundColor: 'transparent',
+                animation: false,
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: 'rgba(30, 30, 40, 0.9)',
+                    borderColor: '#444',
+                    textStyle: { color: '#fff', fontSize: 11 },
+                    formatter: function(params) {
+                        const idx = params[0].dataIndex;
+                        const d = data[idx];
+                        return `<div style="font-size:11px">
+                            <div style="font-weight:bold">${d.time}</div>
+                            <div>价格: ${d.price.toFixed(2)}</div>
+                            <div>均价: ${avgPrices[idx].toFixed(2)}</div>
+                            <div>成交量: ${d.volume}</div>
+                        </div>`;
+                    }
+                },
+                grid: { left: '50', right: '20', top: '10', bottom: '25' },
+                xAxis: {
+                    type: 'category',
+                    data: times,
+                    axisLine: { lineStyle: { color: '#444' } },
+                    axisLabel: { color: '#666', fontSize: 10, interval: 29 },
+                    axisTick: { interval: 29 }
+                },
+                yAxis: {
+                    scale: true,
+                    axisLine: { show: false },
+                    splitLine: { lineStyle: { color: '#333' } },
+                    axisLabel: { color: '#999', fontSize: 10 }
+                },
+                series: [
+                    {
+                        name: '价格',
+                        type: 'line',
+                        data: prices,
+                        lineStyle: { color: '#3B82F6', width: 1.5 },
+                        symbol: 'none',
+                        areaStyle: {
+                            color: {
+                                type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                                colorStops: [
+                                    { offset: 0, color: 'rgba(59, 130, 246, 0.15)' },
+                                    { offset: 1, color: 'rgba(59, 130, 246, 0)' }
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        name: '均价',
+                        type: 'line',
+                        data: avgPrices,
+                        lineStyle: { color: '#F59E0B', width: 1, type: 'dashed' },
+                        symbol: 'none'
+                    }
+                ]
+            });
+
+            if (volumeChart) volumeChart.dispose();
+            if (macdChart) macdChart.dispose();
+            if (kdjChart) kdjChart.dispose();
+            
+            document.getElementById('volumeChart').innerHTML = '<p class="text-gray-500 text-center py-10 text-sm">时分图无成交量明细</p>';
+            document.getElementById('macdChart').innerHTML = '<p class="text-gray-500 text-center py-12 text-sm">时分图无MACD数据</p>';
+            document.getElementById('kdjChart').innerHTML = '<p class="text-gray-500 text-center py-12 text-sm">时分图无KDJ数据</p>';
         }
 
         function calculateEMA(data, period) {
@@ -144,6 +751,17 @@
                 ema.push(data[i] * k + ema[i - 1] * (1 - k));
             }
             return ema;
+        }
+
+        function calculateMACD(prices) {
+            if (prices.length < 35) return null;
+            const ema12 = calculateEMA(prices, 12);
+            const ema26 = calculateEMA(prices, 26);
+            const dif = ema12[ema12.length - 1] - ema26[ema26.length - 1];
+            const difArr = ema12.map((v, i) => v - ema26[i]);
+            const dea = calculateEMA(difArr, 9).pop();
+            const macd = 2 * (dif - dea);
+            return { dif, dea, macd, signal: macd > 0 ? '看多' : '看空' };
         }
 
         function calculateKDJ(highs, lows, closes) {
@@ -197,19 +815,16 @@
             const macd = calculateMACD(history.prices);
             const kdj = calculateKDJ(history.highs, history.lows, history.prices);
 
-            // 成交量分析
             const avgVolume = history.volumes.slice(-20).reduce((a, b) => a + b, 0) / 20;
             const volumeRatio = data.volume / avgVolume;
             let volumeSignal = '平量';
             if (volumeRatio > 1.5) volumeSignal = '放量';
             else if (volumeRatio < 0.5) volumeSignal = '缩量';
 
-            // 换手率分析
             let turnoverSignal = '正常';
             if (data.turnover > 10) turnoverSignal = '高换手/活跃';
             else if (data.turnover < 1) turnoverSignal = '低换手/冷清';
 
-            // 评分计算
             let score = 50;
             if (macd && macd.macd > 0) score += 15;
             if (kdj && parseFloat(kdj.k) < 80 && parseFloat(kdj.k) > 20) score += 10;
@@ -218,7 +833,6 @@
             if (data.change > 0) score += 5;
             score = Math.min(100, Math.max(0, score));
 
-            // 显示分数
             document.getElementById('scoreValue').textContent = score;
             const offset = 283 - (283 * score / 100);
             document.getElementById('scoreCircle').style.strokeDashoffset = offset;
@@ -233,7 +847,6 @@
             document.getElementById('scoreText').textContent = scoreText;
             document.getElementById('scoreText').style.color = colors;
 
-            // 指标显示
             document.getElementById('macdValue').textContent = macd ? macd.macd.toFixed(3) : '--';
             document.getElementById('macdSignal').textContent = macd ? macd.signal : '--';
             document.getElementById('macdSignal').className = 'text-sm mt-1 ' + (macd && macd.macd > 0 ? 'text-green-400' : 'text-red-400');
@@ -247,7 +860,6 @@
             document.getElementById('turnoverValue').textContent = data.turnover.toFixed(2) + '%';
             document.getElementById('turnoverSignal').textContent = turnoverSignal;
 
-            // 详细分析
             const analysis = [];
             analysis.push(`<p><strong>${data.name} (${data.code})</strong> 当前价格: ${data.price}元，涨跌幅: ${data.change > 0 ? '+' : ''}${data.change}%</p>`);
             if (macd) analysis.push(`<p>MACD指标: ${macd.macd > 0 ? '金叉/多头排列' : '死叉/空头排列'}，DIF=${macd.dif.toFixed(3)}，DEA=${macd.dea.toFixed(3)}</p>`);
@@ -256,63 +868,14 @@
             analysis.push(`<p>换手率${data.turnover}%，${turnoverSignal}</p>`);
             analysis.push(`<p>市盈率: ${data.pe.toFixed(2)}，市净率: ${data.pb.toFixed(2)}</p>`);
             document.getElementById('analysis').innerHTML = analysis.join('');
-
-            // 图表
-            renderChart(history, data);
-
-            document.getElementById('result').classList.remove('hidden');
         }
 
-        function renderChart(history, data) {
-            const chartDom = document.getElementById('chart');
-            if (chart) chart.dispose();
-            chart = echarts.init(chartDom);
-
-            const dates = [];
-            for (let i = history.prices.length - 30; i < history.prices.length; i++) {
-                dates.push(`T-${history.prices.length - i}`);
-            }
-            const recentPrices = history.prices.slice(-30);
-            const recentVolumes = history.volumes.slice(-30);
-
-            const option = {
-                backgroundColor: 'transparent',
-                title: { text: data.name + ' 近期走势', left: 'center', textStyle: { color: '#fff' } },
-                tooltip: { trigger: 'axis' },
-                legend: { data: ['价格', '成交量'], textStyle: { color: '#fff' }, bottom: 0 },
-                xAxis: { type: 'category', data: dates, axisLine: { lineStyle: { color: '#666' } } },
-                yAxis: [
-                    { type: 'value', axisLine: { lineStyle: { color: '#666' } }, splitLine: { lineStyle: { color: '#333' } } },
-                    { type: 'value', axisLine: { lineStyle: { color: '#666' } }, splitLine: { show: false } }
-                ],
-                series: [
-                    {
-                        name: '价格',
-                        type: 'line',
-                        data: recentPrices,
-                        smooth: true,
-                        itemStyle: { color: '#3B82F6' },
-                        areaStyle: {
-                            color: {
-                                type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                                colorStops: [
-                                    { offset: 0, color: 'rgba(59, 130, 246, 0.3)' },
-                                    { offset: 1, color: 'rgba(59, 130, 246, 0)' }
-                                ]
-                            }
-                        }
-                    },
-                    {
-                        name: '成交量',
-                        type: 'bar',
-                        yAxisIndex: 1,
-                        data: recentVolumes.map(v => v / 10000),
-                        itemStyle: { color: 'rgba(16, 185, 129, 0.5)' }
-                    }
-                ]
-            };
-            chart.setOption(option);
-        }
+        window.addEventListener('resize', function() {
+            if (klineChart) klineChart.resize();
+            if (volumeChart) volumeChart.resize();
+            if (macdChart) macdChart.resize();
+            if (kdjChart) kdjChart.resize();
+        });
 
         document.getElementById('stockCode').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') analyzeStock();
