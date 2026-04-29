@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, proxy-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>股票技术指标分析工具</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
@@ -39,6 +42,17 @@
                 <p class="text-xs text-gray-500 mt-2">支持格式: 002230, 600519.SH, 科大讯飞, 贵州茅台</p>
             </div>
 
+            <!-- 大盘K线 -->
+            <div id="marketKline" class="max-w-5xl mx-auto mb-6">
+                <div class="bg-gray-800 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-sm font-medium text-gray-300">🏛️ 上证指数</h3>
+                        <span class="text-xs text-gray-500">日K</span>
+                    </div>
+                    <div id="marketChart" style="width: 100%; height: 220px;"></div>
+                </div>
+            </div>
+
             <div id="loading" class="hidden text-center py-12">
                 <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mx-auto"></div>
                 <p class="mt-4 text-gray-400 text-sm">正在加载数据...</p>
@@ -59,10 +73,21 @@
                         </div>
                     </div>
                     <p id="scoreText" class="mt-4 text-lg"></p>
+                    <p id="scoreSummary" class="text-sm text-gray-400 mt-1"></p>
                 </div>
 
-                <!-- 指标卡片 -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <!-- 评分拆解 -->
+                <div class="bg-gray-800 rounded-lg p-4 mb-4">
+                    <h3 class="text-sm text-gray-400 mb-3">📊 评分拆解</h3>
+                    <div id="scoreBreakdown" class="space-y-2 text-sm"></div>
+                    <div class="border-t border-gray-700 mt-3 pt-2 text-sm">
+                        <span class="text-gray-400">基础分: 50</span>
+                        <span id="scoreDelta" class="ml-4 font-bold">+0 = 50</span>
+                    </div>
+                </div>
+
+                <!-- 指标卡片 - 第一行 -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     <div class="bg-gray-800 rounded-lg p-4 fade-in">
                         <h3 class="text-sm text-gray-400 mb-1">MACD</h3>
                         <p id="macdValue" class="text-2xl font-bold">--</p>
@@ -82,6 +107,29 @@
                         <h3 class="text-sm text-gray-400 mb-1">换手率</h3>
                         <p id="turnoverValue" class="text-2xl font-bold">--</p>
                         <p id="turnoverSignal" class="text-sm mt-1">--</p>
+                    </div>
+                </div>
+                <!-- 指标卡片 - 第二行 (PE + PB + ROE + 总市值) -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div id="peCard" class="bg-gray-800 rounded-lg p-4 fade-in">
+                        <h3 class="text-sm text-gray-400 mb-1">市盈率 (PE)</h3>
+                        <p id="peValue" class="text-2xl font-bold">--</p>
+                        <p id="peSignal" class="text-sm mt-1">--</p>
+                    </div>
+                    <div id="pbCard" class="bg-gray-800 rounded-lg p-4 fade-in">
+                        <h3 class="text-sm text-gray-400 mb-1">市净率 (PB)</h3>
+                        <p id="pbValue" class="text-2xl font-bold">--</p>
+                        <p id="pbSignal" class="text-sm mt-1">--</p>
+                    </div>
+                    <div id="roeCard" class="bg-gray-800 rounded-lg p-4 fade-in">
+                        <h3 class="text-sm text-gray-400 mb-1">净资产收益率 (ROE)</h3>
+                        <p id="roeValue" class="text-2xl font-bold">--</p>
+                        <p id="roeSignal" class="text-sm mt-1">--</p>
+                    </div>
+                    <div id="capCard" class="bg-gray-800 rounded-lg p-4 fade-in">
+                        <h3 class="text-sm text-gray-400 mb-1">总市值</h3>
+                        <p id="capValue" class="text-2xl font-bold">--</p>
+                        <p id="capSignal" class="text-sm mt-1">--</p>
                     </div>
                 </div>
 
@@ -113,8 +161,11 @@
             <!-- K线图 -->
             <div class="chart-container">
                 <div class="chart-title flex justify-between items-center">
-                    <span>K线图</span>
-                    <span id="klineInfo" class="text-xs"></span>
+                    <div class="flex items-center gap-3">
+                        <span>K线图</span>
+                        <span id="klineInfo" class="text-xs text-gray-400"></span>
+                    </div>
+                    <div id="pressureInfo" class="text-xs text-gray-400"></div>
                 </div>
                 <div id="klineChart" style="width: 100%; height: 240px;"></div>
             </div>
@@ -143,13 +194,30 @@
                     <span>KDJ</span>
                     <span id="kdjInfo" class="text-xs">KDJ(9,3,3): K: -- D: -- J: --</span>
                 </div>
-                <div id="kdjChart" style="width: 100%; height: 120px;"></div>
+                <div id="kdjChart" style="width: 100%; height: 168px;"></div>
+            </div>
+
+            <!-- DMI图 -->
+            <div class="chart-container">
+                <div class="chart-title flex justify-between items-center">
+                    <span>DMI</span>
+                    <span id="dmiInfo" class="text-xs">DMI(14): +DI: -- -DI: -- ADX: --</span>
+                </div>
+                <div id="dmiChart" style="width: 100%; height: 140px;"></div>
             </div>
 
             <!-- 详细分析 -->
             <div class="bg-gray-800 rounded-lg p-6 mt-4">
                 <h2 class="text-xl font-semibold mb-4">详细分析</h2>
                 <div id="analysis" class="space-y-3 text-gray-300"></div>
+            </div>
+
+            <!-- 相关新闻 -->
+            <div class="bg-gray-800 rounded-lg p-6 mt-4">
+                <h2 class="text-xl font-semibold mb-4">📰 相关新闻（7天内）</h2>
+                <div id="newsList" class="space-y-3">
+                    <p class="text-gray-500 text-sm">加载中...</p>
+                </div>
             </div>
         </div>
     </div>
@@ -159,6 +227,8 @@
         let volumeChart = null;
         let macdChart = null;
         let kdjChart = null;
+        let dmiChart = null;
+        let marketChart = null;
         let currentStock = null;
         let currentPeriod = 'day';
         let currentData = null;
@@ -204,6 +274,7 @@
                 
                 displayResults(data);
                 await loadCharts(data.code, currentPeriod);
+                await loadNews(data.code, data.name);
             } catch (err) {
                 alert('获取数据失败: ' + err.message);
                 console.error(err);
@@ -223,6 +294,78 @@
             await loadCharts(currentStock.code, period);
         }
 
+        async function loadMarketKline() {
+            try {
+                const response = await fetch(`/api/kline?code=000001.SH&period=day`);
+                const result = await response.json();
+                if (result.error) throw new Error(result.error);
+
+                const data = result.data;
+                const dates = data.map(d => d.date);
+                const klineData = data.map(d => [d.open, d.close, d.low, d.high]);
+                const volumes = data.map(d => d.volume / 10000);
+
+                const ma5 = calculateMA(data, 5);
+                const ma10 = calculateMA(data, 10);
+                const ma20 = calculateMA(data, 20);
+
+                if (marketChart) marketChart.dispose();
+                marketChart = echarts.init(document.getElementById('marketChart'));
+                marketChart.setOption({
+                    backgroundColor: 'transparent',
+                    animation: false,
+                    tooltip: {
+                        trigger: 'axis',
+                        backgroundColor: 'rgba(30, 30, 40, 0.95)',
+                        borderColor: '#444',
+                        textStyle: { color: '#fff', fontSize: 11 },
+                        formatter: function(params) {
+                            const idx = params[0].dataIndex;
+                            const d = data[idx];
+                            const color = d.close >= d.open ? '#ef4444' : '#22c55e';
+                            return `<div style="font-size:11px">
+                                <div style="font-weight:bold;margin-bottom:4px">${d.date}</div>
+                                <div>开盘: <span style="color:${color}">${d.open.toFixed(2)}</span></div>
+                                <div>收盘: <span style="color:${color}">${d.close.toFixed(2)}</span></div>
+                                <div>最高: ${d.high.toFixed(2)}</div>
+                                <div>最低: ${d.low.toFixed(2)}</div>
+                                <div>成交量: ${(d.volume/10000).toFixed(2)}万</div>
+                            </div>`;
+                        }
+                    },
+                    grid: { left: '50', right: '20', top: '10', bottom: '25' },
+                    xAxis: {
+                        type: 'category',
+                        data: dates,
+                        axisLine: { lineStyle: { color: '#444' } },
+                        axisLabel: { color: '#666', fontSize: 10 },
+                        axisTick: { show: false }
+                    },
+                    yAxis: {
+                        scale: true,
+                        axisLine: { show: false },
+                        splitLine: { lineStyle: { color: '#333' } },
+                        axisLabel: { color: '#999', fontSize: 10 }
+                    },
+                    dataZoom: [{ type: 'inside', start: Math.max(0, 100 - 120/data.length*100), end: 100 }],
+                    series: [
+                        {
+                            name: 'K线',
+                            type: 'candlestick',
+                            data: klineData,
+                            itemStyle: { color: '#ef4444', color0: '#22c55e', borderColor: '#ef4444', borderColor0: '#22c55e' }
+                        },
+                        { name: 'MA5', type: 'line', data: ma5, smooth: true, lineStyle: { color: '#F59E0B', width: 1 }, symbol: 'none' },
+                        { name: 'MA10', type: 'line', data: ma10, smooth: true, lineStyle: { color: '#3B82F6', width: 1 }, symbol: 'none' },
+                        { name: 'MA20', type: 'line', data: ma20, smooth: true, lineStyle: { color: '#8B5CF6', width: 1 }, symbol: 'none' }
+                    ]
+                });
+            } catch (err) {
+                console.error('大盘K线加载失败:', err);
+                document.getElementById('marketChart').innerHTML = '<p class="text-gray-500 text-center py-10 text-sm">大盘K线加载失败</p>';
+            }
+        }
+
         async function loadCharts(code, period) {
             try {
                 const response = await fetch(`/api/kline?code=${encodeURIComponent(code)}&period=${period}`);
@@ -236,6 +379,11 @@
                     renderMinuteCharts(result.data);
                 } else {
                     renderKlineCharts(result.data, result);
+                }
+                
+                // 显示评分拆解
+                if (result.score) {
+                    displayScore(result.score);
                 }
             } catch (err) {
                 console.error('数据加载失败:', err);
@@ -278,6 +426,12 @@
             const kdjJ = kdjData ? kdjData.j.map(v => v !== null ? v.toFixed(2) : '-') : [];
             
             const volAvg = indicators?.volumeAvg ? indicators.volumeAvg.map(v => (v / 10000).toFixed(2)) : [];
+            
+            // BOLL 数据
+            const bollData = indicators?.boll;
+            const bollUp = bollData ? bollData.up.map(v => v !== null ? v.toFixed(2) : '-') : [];
+            const bollMb = bollData ? bollData.mb.map(v => v !== null ? v.toFixed(2) : '-') : [];
+            const bollDn = bollData ? bollData.dn.map(v => v !== null ? v.toFixed(2) : '-') : [];
 
             if (macdData && macdDif.length > 0) {
                 const lastIdx = macdDif.length - 1;
@@ -291,10 +445,26 @@
             }
             if (data.length > 0) {
                 const last = data[data.length - 1];
-                document.getElementById('klineInfo').textContent = 
-                    `MA5:${ma5[ma5.length-1]}  MA10:${ma10[ma10.length-1]}  MA20:${ma20[ma20.length-1]}`;
+                let klineInfoText = `MA5:${ma5[ma5.length-1]}  MA10:${ma10[ma10.length-1]}  MA20:${ma20[ma20.length-1]}`;
+                if (bollData && bollData.mb[data.length - 1] !== null) {
+                    const lastIdx = data.length - 1;
+                    klineInfoText += `  |  BOLL(20,2): 上轨${bollData.up[lastIdx].toFixed(2)} 中轨${bollData.mb[lastIdx].toFixed(2)} 下轨${bollData.dn[lastIdx].toFixed(2)}`;
+                }
+                document.getElementById('klineInfo').textContent = klineInfoText;
                 document.getElementById('volumeInfo').textContent = 
                     `VOL:${(last.volume/10000).toFixed(2)}万`;
+                
+                // 压力位和支撑位
+                if (indicators?.bollPressure) {
+                    const bp = indicators.bollPressure;
+                    const price = last.close;
+                    let pressureColor = price >= bp.pressure ? 'text-red-400' : 'text-orange-400';
+                    let supportColor = price <= bp.support ? 'text-green-400' : 'text-blue-400';
+                    document.getElementById('pressureInfo').innerHTML = 
+                        `<span class="${pressureColor}">压力位: ${bp.pressure.toFixed(2)}</span>  <span class="${supportColor}">支撑位: ${bp.support.toFixed(2)}</span>  <span class="text-gray-500">中轨: ${bp.mid.toFixed(2)}</span>`;
+                } else {
+                    document.getElementById('pressureInfo').textContent = '';
+                }
             }
 
             const macdSignals = [];
@@ -370,6 +540,14 @@
                         const d = data[idx];
                         if (!d) return '';
                         const color = d.close >= d.open ? '#ef4444' : '#22c55e';
+                        let bollText = '';
+                        if (bollData && bollData.mb[idx] !== null) {
+                            bollText = `<div style="margin-top:4px;border-top:1px solid #444;padding-top:4px">
+                                <div style="color:#A78BFA">BOLL上轨: ${bollData.up[idx].toFixed(2)}</div>
+                                <div style="color:#F59E0B">BOLL中轨: ${bollData.mb[idx].toFixed(2)}</div>
+                                <div style="color:#34D399">BOLL下轨: ${bollData.dn[idx].toFixed(2)}</div>
+                            </div>`;
+                        }
                         return `<div style="font-size:11px">
                             <div style="font-weight:bold;margin-bottom:4px">${d.date}</div>
                             <div>开盘: <span style="color:${color}">${d.open.toFixed(2)}</span></div>
@@ -377,6 +555,7 @@
                             <div>最高: ${d.high.toFixed(2)}</div>
                             <div>最低: ${d.low.toFixed(2)}</div>
                             <div>成交量: ${(d.volume/10000).toFixed(2)}万</div>
+                            ${bollText}
                         </div>`;
                     }
                 },
@@ -404,7 +583,10 @@
                     },
                     { name: 'MA5', type: 'line', data: ma5, smooth: true, lineStyle: { color: '#F59E0B', width: 1 }, symbol: 'none' },
                     { name: 'MA10', type: 'line', data: ma10, smooth: true, lineStyle: { color: '#3B82F6', width: 1 }, symbol: 'none' },
-                    { name: 'MA20', type: 'line', data: ma20, smooth: true, lineStyle: { color: '#8B5CF6', width: 1 }, symbol: 'none' }
+                    { name: 'MA20', type: 'line', data: ma20, smooth: true, lineStyle: { color: '#8B5CF6', width: 1 }, symbol: 'none' },
+                    { name: 'BOLL上轨', type: 'line', data: bollUp, smooth: true, lineStyle: { color: '#A78BFA', width: 1, type: 'dashed' }, symbol: 'none' },
+                    { name: 'BOLL中轨', type: 'line', data: bollMb, smooth: true, lineStyle: { color: '#F59E0B', width: 1, type: 'dashed' }, symbol: 'none' },
+                    { name: 'BOLL下轨', type: 'line', data: bollDn, smooth: true, lineStyle: { color: '#34D399', width: 1, type: 'dashed' }, symbol: 'none' }
                 ]
             });
 
@@ -641,6 +823,139 @@
                 ]
             });
 
+            // 5. DMI图
+            const dmiData = indicators?.dmi;
+            const dmiPDI = dmiData ? dmiData.plusDI : [];
+            const dmiMDI = dmiData ? dmiData.minusDI : [];
+            const dmiADX = dmiData ? dmiData.adx : [];
+
+            if (dmiData && dmiPDI.length > 0) {
+                let validIdx = dmiPDI.length - 1;
+                while (validIdx >= 0 && dmiPDI[validIdx] === null) {
+                    validIdx--;
+                }
+                if (validIdx >= 0) {
+                    document.getElementById('dmiInfo').textContent =
+                        `DMI(14): +DI:${dmiPDI[validIdx].toFixed(1)}  -DI:${dmiMDI[validIdx].toFixed(1)}  ADX:${dmiADX[validIdx].toFixed(1)}`;
+                }
+            }
+
+            const dmiSignals = [];
+            if (indicators?.signals) {
+                indicators.signals.filter(s => s.indicator === 'DMI').forEach(s => {
+                    dmiSignals.push({
+                        xAxis: s.index,
+                        yAxis: s.type === 'golden' ? 70 : 10,
+                        itemStyle: { color: s.type === 'golden' ? '#ef4444' : '#22c55e' },
+                        label: {
+                            show: true,
+                            position: s.type === 'golden' ? 'top' : 'bottom',
+                            formatter: s.label,
+                            color: s.type === 'golden' ? '#ef4444' : '#22c55e',
+                            fontSize: 9,
+                            fontWeight: 'bold'
+                        }
+                    });
+                });
+            }
+
+            if (dmiChart) dmiChart.dispose();
+            dmiChart = echarts.init(document.getElementById('dmiChart'));
+            dmiChart.setOption({
+                backgroundColor: 'transparent',
+                animation: false,
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: 'rgba(30, 30, 40, 0.95)',
+                    borderColor: '#444',
+                    textStyle: { color: '#fff', fontSize: 11 },
+                    formatter: function(params) {
+                        const idx = params[0].dataIndex;
+                        const p = dmiPDI[idx] !== null ? dmiPDI[idx].toFixed(2) : '-';
+                        const m = dmiMDI[idx] !== null ? dmiMDI[idx].toFixed(2) : '-';
+                        const a = dmiADX[idx] !== null ? dmiADX[idx].toFixed(2) : '-';
+                        return `<div style="font-size:11px">
+                            <div style="font-weight:bold">${dates[idx]}</div>
+                            <div style="color:#EC4899">+DI: ${p}</div>
+                            <div style="color:#3B82F6">-DI: ${m}</div>
+                            <div style="color:#F59E0B">ADX: ${a}</div>
+                        </div>`;
+                    }
+                },
+                grid: { left: '50', right: '20', top: '15', bottom: '25' },
+                xAxis: {
+                    type: 'category',
+                    data: dates,
+                    axisLine: { lineStyle: { color: '#444' } },
+                    axisLabel: { color: '#666', fontSize: 10 },
+                    axisTick: { show: false }
+                },
+                yAxis: {
+                    scale: true,
+                    min: 0,
+                    max: 80,
+                    axisLine: { show: false },
+                    splitLine: { lineStyle: { color: '#333' } },
+                    axisLabel: { color: '#999', fontSize: 9 }
+                },
+                dataZoom: [{ type: 'inside', start: Math.max(0, 100 - 120/data.length*100), end: 100 }],
+                series: [
+                    {
+                        name: '+DI',
+                        type: 'line',
+                        data: dmiPDI,
+                        smooth: true,
+                        connectNulls: false,
+                        lineStyle: { color: '#EC4899', width: 1.5 },
+                        symbol: 'none'
+                    },
+                    {
+                        name: '-DI',
+                        type: 'line',
+                        data: dmiMDI,
+                        smooth: true,
+                        connectNulls: false,
+                        lineStyle: { color: '#3B82F6', width: 1.5 },
+                        symbol: 'none'
+                    },
+                    {
+                        name: 'ADX',
+                        type: 'line',
+                        data: dmiADX,
+                        smooth: true,
+                        connectNulls: false,
+                        lineStyle: { color: '#F59E0B', width: 1 },
+                        symbol: 'none'
+                    },
+                    {
+                        name: '20',
+                        type: 'line',
+                        data: dmiPDI.map(() => 20),
+                        lineStyle: { color: 'rgba(34,197,94,0.2)', width: 0.5, type: 'dashed' },
+                        symbol: 'none',
+                        silent: true
+                    },
+                    {
+                        name: '40',
+                        type: 'line',
+                        data: dmiPDI.map(() => 40),
+                        lineStyle: { color: 'rgba(239,68,68,0.2)', width: 0.5, type: 'dashed' },
+                        symbol: 'none',
+                        silent: true
+                    },
+                    {
+                        type: 'scatter',
+                        data: [],
+                        markPoint: {
+                            data: dmiSignals,
+                            symbol: 'pin',
+                            symbolSize: 12,
+                            label: { fontSize: 9 }
+                        }
+                    }
+                ]
+            });
+
             // 同步缩放
             const syncZoom = (source, targets) => {
                 source.on('dataZoom', function(params) {
@@ -655,10 +970,11 @@
                 });
             };
             
-            syncZoom(klineChart, [volumeChart, macdChart, kdjChart]);
-            syncZoom(volumeChart, [klineChart, macdChart, kdjChart]);
-            syncZoom(macdChart, [klineChart, volumeChart, kdjChart]);
-            syncZoom(kdjChart, [klineChart, volumeChart, macdChart]);
+            syncZoom(klineChart, [volumeChart, macdChart, kdjChart, dmiChart]);
+            syncZoom(volumeChart, [klineChart, macdChart, kdjChart, dmiChart]);
+            syncZoom(macdChart, [klineChart, volumeChart, kdjChart, dmiChart]);
+            syncZoom(kdjChart, [klineChart, volumeChart, macdChart, dmiChart]);
+            syncZoom(dmiChart, [klineChart, volumeChart, macdChart, kdjChart]);
         }
 
         function renderMinuteCharts(data) {
@@ -738,10 +1054,12 @@
             if (volumeChart) volumeChart.dispose();
             if (macdChart) macdChart.dispose();
             if (kdjChart) kdjChart.dispose();
+            if (dmiChart) dmiChart.dispose();
             
             document.getElementById('volumeChart').innerHTML = '<p class="text-gray-500 text-center py-10 text-sm">时分图无成交量明细</p>';
             document.getElementById('macdChart').innerHTML = '<p class="text-gray-500 text-center py-12 text-sm">时分图无MACD数据</p>';
             document.getElementById('kdjChart').innerHTML = '<p class="text-gray-500 text-center py-12 text-sm">时分图无KDJ数据</p>';
+            document.getElementById('dmiChart').innerHTML = '<p class="text-gray-500 text-center py-12 text-sm">时分图无DMI数据</p>';
         }
 
         function calculateEMA(data, period) {
@@ -811,63 +1129,346 @@
         }
 
         function displayResults(data) {
-            const history = generateMockHistory(data);
-            const macd = calculateMACD(history.prices);
-            const kdj = calculateKDJ(history.highs, history.lows, history.prices);
-
-            const avgVolume = history.volumes.slice(-20).reduce((a, b) => a + b, 0) / 20;
-            const volumeRatio = data.volume / avgVolume;
-            let volumeSignal = '平量';
-            if (volumeRatio > 1.5) volumeSignal = '放量';
-            else if (volumeRatio < 0.5) volumeSignal = '缩量';
-
+            // 指标卡片数据（来自 /api/stock 的实时数据）
+            const turnover = data.turnover || 0;
+            const volumeSignal = data.volume > data.prevClose * 0.01 ? '正常' : '偏低';
             let turnoverSignal = '正常';
-            if (data.turnover > 10) turnoverSignal = '高换手/活跃';
-            else if (data.turnover < 1) turnoverSignal = '低换手/冷清';
+            if (turnover > 10) turnoverSignal = '高换手/活跃';
+            else if (turnover < 1) turnoverSignal = '低换手/冷清';
 
-            let score = 50;
-            if (macd && macd.macd > 0) score += 15;
-            if (kdj && parseFloat(kdj.k) < 80 && parseFloat(kdj.k) > 20) score += 10;
-            if (volumeSignal === '放量') score += 10;
-            if (data.turnover > 2 && data.turnover < 10) score += 10;
-            if (data.change > 0) score += 5;
-            score = Math.min(100, Math.max(0, score));
+            document.getElementById('macdValue').textContent = '--';
+            document.getElementById('macdSignal').textContent = '加载中...';
+            document.getElementById('macdSignal').className = 'text-sm mt-1 text-gray-400';
 
-            document.getElementById('scoreValue').textContent = score;
-            const offset = 283 - (283 * score / 100);
-            document.getElementById('scoreCircle').style.strokeDashoffset = offset;
-            const colors = score > 70 ? '#10B981' : score > 40 ? '#F59E0B' : '#EF4444';
-            document.getElementById('scoreCircle').style.stroke = colors;
-
-            let scoreText = '';
-            if (score >= 80) scoreText = '强烈推荐';
-            else if (score >= 60) scoreText = '值得关注';
-            else if (score >= 40) scoreText = '中性观望';
-            else scoreText = '谨慎对待';
-            document.getElementById('scoreText').textContent = scoreText;
-            document.getElementById('scoreText').style.color = colors;
-
-            document.getElementById('macdValue').textContent = macd ? macd.macd.toFixed(3) : '--';
-            document.getElementById('macdSignal').textContent = macd ? macd.signal : '--';
-            document.getElementById('macdSignal').className = 'text-sm mt-1 ' + (macd && macd.macd > 0 ? 'text-green-400' : 'text-red-400');
-
-            document.getElementById('kdjValue').textContent = kdj ? `K:${kdj.k}` : '--';
-            document.getElementById('kdjSignal').textContent = kdj ? kdj.signal : '--';
+            document.getElementById('kdjValue').textContent = '--';
+            document.getElementById('kdjSignal').textContent = '加载中...';
 
             document.getElementById('volumeValue').textContent = (data.volume / 10000).toFixed(2) + '万';
             document.getElementById('volumeSignal').textContent = volumeSignal;
 
-            document.getElementById('turnoverValue').textContent = data.turnover.toFixed(2) + '%';
+            document.getElementById('turnoverValue').textContent = turnover.toFixed(2) + '%';
             document.getElementById('turnoverSignal').textContent = turnoverSignal;
 
+            // PE市盈率显示
+            const pe = data.pe || 0;
+            let peSignal = '--';
+            let peColorClass = 'text-gray-400';
+            let peCardClass = 'bg-gray-800';
+            if (pe > 0) {
+                if (pe < 15) {
+                    peSignal = '低估便宜';
+                    peColorClass = 'text-green-500';
+                    peCardClass = 'bg-green-900/20 border border-green-700/30';
+                } else if (pe < 30) {
+                    peSignal = '正常合理';
+                    peColorClass = 'text-blue-400';
+                    peCardClass = 'bg-blue-900/20 border border-blue-700/30';
+                } else if (pe < 50) {
+                    peSignal = '偏高泡沫';
+                    peColorClass = 'text-orange-400';
+                    peCardClass = 'bg-orange-900/20 border border-orange-700/30';
+                } else {
+                    peSignal = '严重高估';
+                    peColorClass = 'text-red-500';
+                    peCardClass = 'bg-red-900/20 border border-red-700/30';
+                }
+            }
+            document.getElementById('peValue').textContent = pe > 0 ? pe.toFixed(2) : '亏损/无PE';
+            document.getElementById('peValue').className = 'text-2xl font-bold ' + peColorClass;
+            document.getElementById('peSignal').textContent = peSignal;
+            document.getElementById('peSignal').className = 'text-sm mt-1 ' + peColorClass;
+            const peCard = document.getElementById('peCard');
+            peCard.className = 'rounded-lg p-4 fade-in ' + peCardClass;
+
+            // PB市净率显示
+            const pb = data.pb || 0;
+            let pbSignal = '--';
+            let pbColorClass = 'text-gray-400';
+            let pbCardClass = 'bg-gray-800';
+            if (pb > 0) {
+                if (pb < 1) {
+                    pbSignal = '破净，超级便宜';
+                    pbColorClass = 'text-green-500';
+                    pbCardClass = 'bg-green-900/20 border border-green-700/30';
+                } else if (pb < 2) {
+                    pbSignal = '合理正常';
+                    pbColorClass = 'text-blue-400';
+                    pbCardClass = 'bg-blue-900/20 border border-blue-700/30';
+                } else if (pb < 3) {
+                    pbSignal = '偏贵';
+                    pbColorClass = 'text-orange-400';
+                    pbCardClass = 'bg-orange-900/20 border border-orange-700/30';
+                } else {
+                    pbSignal = '很贵，高估';
+                    pbColorClass = 'text-red-500';
+                    pbCardClass = 'bg-red-900/20 border border-red-700/30';
+                }
+            }
+            document.getElementById('pbValue').textContent = pb > 0 ? pb.toFixed(2) : '--';
+            document.getElementById('pbValue').className = 'text-2xl font-bold ' + pbColorClass;
+            document.getElementById('pbSignal').textContent = pbSignal;
+            document.getElementById('pbSignal').className = 'text-sm mt-1 ' + pbColorClass;
+            const pbCard = document.getElementById('pbCard');
+            pbCard.className = 'rounded-lg p-4 fade-in ' + pbCardClass;
+
+            // 总市值显示
+            const cap = data.marketCap || 0;
+            let capSignal = '--';
+            let capColorClass = 'text-gray-400';
+            let capCardClass = 'bg-gray-800';
+            if (cap > 0) {
+                if (cap >= 5000) {
+                    capSignal = '超级大盘股';
+                    capColorClass = 'text-purple-400';
+                    capCardClass = 'bg-purple-900/20 border border-purple-700/30';
+                } else if (cap >= 1000) {
+                    capSignal = '大盘股';
+                    capColorClass = 'text-blue-400';
+                    capCardClass = 'bg-blue-900/20 border border-blue-700/30';
+                } else if (cap >= 300) {
+                    capSignal = '中盘股';
+                    capColorClass = 'text-green-400';
+                    capCardClass = 'bg-green-900/20 border border-green-700/30';
+                } else if (cap >= 50) {
+                    capSignal = '小盘股';
+                    capColorClass = 'text-orange-400';
+                    capCardClass = 'bg-orange-900/20 border border-orange-700/30';
+                } else {
+                    capSignal = '微型股';
+                    capColorClass = 'text-gray-400';
+                    capCardClass = 'bg-gray-800';
+                }
+            }
+            let capText = cap > 0 ? (cap >= 10000 ? (cap/10000).toFixed(2) + '万亿' : cap.toFixed(2) + '亿') : '--';
+            document.getElementById('capValue').textContent = capText;
+            document.getElementById('capValue').className = 'text-2xl font-bold ' + capColorClass;
+            document.getElementById('capSignal').textContent = capSignal;
+            document.getElementById('capSignal').className = 'text-sm mt-1 ' + capColorClass;
+            const capCard = document.getElementById('capCard');
+            capCard.className = 'rounded-lg p-4 fade-in ' + capCardClass;
+
+            // ROE净资产收益率显示
+            const roe = data.roe || 0;
+            let roeSignal = '--';
+            let roeColorClass = 'text-gray-400';
+            let roeCardClass = 'bg-gray-800';
+            if (roe > 0) {
+                if (roe >= 15) {
+                    roeSignal = '优秀（优质白马）';
+                    roeColorClass = 'text-green-500';
+                    roeCardClass = 'bg-green-900/20 border border-green-700/30';
+                } else if (roe >= 8) {
+                    roeSignal = '正常合格';
+                    roeColorClass = 'text-blue-400';
+                    roeCardClass = 'bg-blue-900/20 border border-blue-700/30';
+                } else {
+                    roeSignal = '偏低（赚钱很弱）';
+                    roeColorClass = 'text-orange-400';
+                    roeCardClass = 'bg-orange-900/20 border border-orange-700/30';
+                }
+            } else {
+                roeSignal = '负数（亏损企业，尽量避开）';
+                roeColorClass = 'text-red-500';
+                roeCardClass = 'bg-red-900/20 border border-red-700/30';
+            }
+            document.getElementById('roeValue').textContent = roe > 0 ? roe.toFixed(2) + '%' : (roe <= 0 ? roe.toFixed(2) + '%' : '--');
+            document.getElementById('roeValue').className = 'text-2xl font-bold ' + roeColorClass;
+            document.getElementById('roeSignal').textContent = roeSignal;
+            document.getElementById('roeSignal').className = 'text-sm mt-1 ' + roeColorClass;
+            const roeCard = document.getElementById('roeCard');
+            roeCard.className = 'rounded-lg p-4 fade-in ' + roeCardClass;
+
+            // 详细分析 - 主力行为分析
             const analysis = [];
-            analysis.push(`<p><strong>${data.name} (${data.code})</strong> 当前价格: ${data.price}元，涨跌幅: ${data.change > 0 ? '+' : ''}${data.change}%</p>`);
-            if (macd) analysis.push(`<p>MACD指标: ${macd.macd > 0 ? '金叉/多头排列' : '死叉/空头排列'}，DIF=${macd.dif.toFixed(3)}，DEA=${macd.dea.toFixed(3)}</p>`);
-            if (kdj) analysis.push(`<p>KDJ指标: K=${kdj.k}，D=${kdj.d}，J=${kdj.j}，${kdj.signal}</p>`);
-            analysis.push(`<p>成交量${volumeSignal}，量比${volumeRatio.toFixed(2)}</p>`);
-            analysis.push(`<p>换手率${data.turnover}%，${turnoverSignal}</p>`);
-            analysis.push(`<p>市盈率: ${data.pe.toFixed(2)}，市净率: ${data.pb.toFixed(2)}</p>`);
+            analysis.push(`<p class="font-bold text-lg mb-2">🔍 主力行为分析</p>`);
+
+            // 1. 机构票 vs 游资票判断（复用已有变量）
+            const isBigCap = cap >= 1000;
+            const isSmallCap = cap < 100;
+            const isLowTurnover = turnover < 5;
+            const isHighTurnover = turnover > 10;
+            const isLowPE = pe > 0 && pe < 30;
+            
+            let stockType = '混合风格';
+            let typeColor = 'text-blue-400';
+            if (isBigCap && isLowTurnover && isLowPE) {
+                stockType = '机构重仓票';
+                typeColor = 'text-green-400';
+            } else if (isSmallCap && (isHighTurnover || pe <= 0)) {
+                stockType = '游资短线票';
+                typeColor = 'text-orange-400';
+            } else if (isBigCap && isHighTurnover) {
+                stockType = '机构+游资博弈';
+                typeColor = 'text-purple-400';
+            } else if (cap >= 100 && cap < 1000 && turnover >= 3 && turnover <= 10) {
+                stockType = '机构主导的中盘股';
+                typeColor = 'text-blue-400';
+            }
+            analysis.push(`<p>股票性质：<span class="font-bold ${typeColor}">${stockType}</span></p>`);
+
+            // 2. 主力资金流向
+            const outVol = data.outVolume || 0;
+            const inVol = data.inVolume || 0;
+            const netFlow = outVol - inVol;
+            const netFlowPct = data.volume > 0 ? (netFlow / data.volume * 100) : 0;
+            const netFlowWan = Math.abs(netFlow * data.price / 10000).toFixed(0);
+            
+            let flowText = '';
+            let flowColor = '';
+            if (netFlow > 0) {
+                flowText = `净流入 ${netFlowWan}万 (${netFlowPct.toFixed(1)}%)`;
+                flowColor = 'text-red-500';
+            } else {
+                flowText = `净流出 ${netFlowWan}万 (${Math.abs(netFlowPct).toFixed(1)}%)`;
+                flowColor = 'text-green-500';
+            }
+            analysis.push(`<p>当日主力流向：<span class="font-bold ${flowColor}">${flowText}</span> (外盘${(outVol/10000).toFixed(0)}万手 vs 内盘${(inVol/10000).toFixed(0)}万手)</p>`);
+
+            // 3. 主力操作阶段判断
+            analysis.push(`<p class="mt-2 font-bold text-gray-300">📊 主力筹码阶段判断：</p>`);
+            
+            const price = data.price;
+            const prevClose = data.prevClose;
+            const priceChange = ((price - prevClose) / prevClose * 100);
+            
+            let stageGuess = '';
+            let stageColor = '';
+            let stageDesc = '';
+            
+            // 优先判断出货（资金流出+放量）和拉升（资金流入+大涨）
+            if (turnover > 5 && netFlow < 0) {
+                stageGuess = '④ 主力出货阶段';
+                stageColor = 'text-red-500';
+                stageDesc = '放量但资金流出，主力在悄悄派发筹码，风险极高，建议观望或减仓';
+            } else if (turnover > 10 && Math.abs(priceChange) < 3) {
+                stageGuess = '④ 主力出货阶段';
+                stageColor = 'text-red-500';
+                stageDesc = '高换手+横盘滞涨，主力在高位派发，风险极高';
+            } else if (turnover > 8 && netFlow > 0 && priceChange > 3) {
+                stageGuess = '③ 主力拉升阶段';
+                stageColor = 'text-red-500';
+                stageDesc = '放量大涨+资金流入，主力在主动拉抬，但追高风险大，适合持股者持有';
+            } else if (turnover > 5 && netFlow > 0 && priceChange > 0) {
+                stageGuess = '③ 主力拉升阶段';
+                stageColor = 'text-red-500';
+                stageDesc = '上涨+资金流入，主力在吃货推升';
+            } else if (turnover >= 3 && turnover <= 8 && Math.abs(priceChange) < 2) {
+                stageGuess = '② 主力洗盘阶段';
+                stageColor = 'text-yellow-400';
+                stageDesc = '缩量震荡，主力在清洗浮筹，震荡区间是低吸机会';
+            } else if (turnover < 3 && Math.abs(priceChange) < 1) {
+                stageGuess = '① 主力建仓/⑤ 收尾阶段';
+                stageColor = 'text-gray-400';
+                stageDesc = '交投清淡，可能是建仓初期或行情末期，等待放量信号';
+            } else {
+                stageGuess = '② 主力洗盘/震荡阶段';
+                stageColor = 'text-yellow-400';
+                stageDesc = '行情震荡，方向不明，等待突破信号';
+            }
+            
+            analysis.push(`<p>当前最可能阶段：<span class="font-bold ${stageColor}">${stageGuess}</span></p>`);
+            analysis.push(`<p class="text-gray-400 text-sm">${stageDesc}</p>`);
+            
+            // 4. 操作建议
+            analysis.push(`<p class="mt-2 font-bold text-gray-300">💡 操作策略：</p>`);
+            let strategy = '';
+            if (stageGuess.includes('出货')) {
+                strategy = '⚠️ <span class="text-red-500 font-bold">风险警报</span>：主力在出货，建议减仓或离场，不要追高。';
+            } else if (stageGuess.includes('拉升')) {
+                strategy = '🔥 <span class="text-orange-500 font-bold">追涨风险</span>：主力在拉升，已有仓位可持有，但新开仓风险较大，等回调再介入。';
+            } else if (stageGuess.includes('洗盘')) {
+                strategy = '💎 <span class="text-yellow-400 font-bold">低吸机会</span>：主力在洗盘，可在支撑位附近逢低布局，设好止损。';
+            } else if (stageGuess.includes('建仓')) {
+                strategy = '👀 <span class="text-blue-400 font-bold">观望等待</span>：主力可能在悄悄建仓，关注放量突破信号，再跟进。';
+            } else {
+                strategy = '📊 <span class="text-gray-400 font-bold">震荡观望</span>：方向不明，控制仓位，等待明确的趋势信号。';
+            }
+            analysis.push(`<p>${strategy}</p>`);
+            
             document.getElementById('analysis').innerHTML = analysis.join('');
+        }
+
+        function displayScore(scoreData) {
+            if (!scoreData) return;
+            
+            const total = scoreData.total;
+            const breakdown = scoreData.breakdown || [];
+            const summary = scoreData.summary || '';
+            
+            // 圆环评分
+            document.getElementById('scoreValue').textContent = total;
+            const offset = 283 - (283 * total / 100);
+            document.getElementById('scoreCircle').style.strokeDashoffset = offset;
+            const colors = total > 70 ? '#10B981' : total > 40 ? '#F59E0B' : '#EF4444';
+            document.getElementById('scoreCircle').style.stroke = colors;
+
+            let scoreText = '';
+            if (total >= 80) scoreText = '强烈推荐';
+            else if (total >= 60) scoreText = '值得关注';
+            else if (total >= 40) scoreText = '中性观望';
+            else scoreText = '谨慎对待';
+            document.getElementById('scoreText').textContent = scoreText;
+            document.getElementById('scoreText').style.color = colors;
+            document.getElementById('scoreSummary').textContent = summary;
+            
+            // 评分拆解
+            let delta = 0;
+            let html = '';
+            breakdown.forEach(item => {
+                const sign = item.score > 0 ? '+' : (item.score < 0 ? '' : '');
+                const color = item.score > 0 ? 'text-green-400' : (item.score < 0 ? 'text-red-400' : 'text-gray-400');
+                const icon = item.score > 0 ? '✅' : (item.score < 0 ? '⚠️' : '➖');
+                html += `<div class="flex justify-between items-center">
+                    <span>${icon} ${item.name}</span>
+                    <span class="${color} font-medium">${sign}${item.score} <span class="text-gray-500 text-xs">${item.reason}</span></span>
+                </div>`;
+                delta += item.score;
+            });
+            document.getElementById('scoreBreakdown').innerHTML = html;
+            document.getElementById('scoreDelta').textContent = `${delta >= 0 ? '+' : ''}${delta} = ${total}`;
+            document.getElementById('scoreDelta').className = `ml-4 font-bold ${delta >= 0 ? 'text-green-400' : 'text-red-400'}`;
+            
+            // 更新指标卡片
+            const macdItem = breakdown.find(b => b.name === 'MACD');
+            if (macdItem) {
+                const lastMacd = currentData?.macd?.macd?.slice(-1)[0];
+                document.getElementById('macdValue').textContent = lastMacd !== undefined ? lastMacd.toFixed(3) : '--';
+                document.getElementById('macdSignal').textContent = macdItem.reason;
+                document.getElementById('macdSignal').className = 'text-sm mt-1 ' + (macdItem.positive ? 'text-green-400' : 'text-red-400');
+            }
+            
+            const kdjItem = breakdown.find(b => b.name === 'KDJ');
+            if (kdjItem && currentData?.kdj) {
+                const lastK = currentData.kdj.k.slice(-1)[0];
+                document.getElementById('kdjValue').textContent = lastK !== null ? `K:${lastK.toFixed(2)}` : '--';
+                document.getElementById('kdjSignal').textContent = kdjItem.reason;
+                document.getElementById('kdjSignal').className = 'text-sm mt-1 ' + (kdjItem.positive ? 'text-green-400' : 'text-red-400');
+            }
+        }
+
+        async function loadNews(code, name) {
+            try {
+                const response = await fetch(`/api/news?code=${encodeURIComponent(code)}&name=${encodeURIComponent(name || '')}`);
+                const data = await response.json();
+                
+                if (data.error || !data.news || data.news.length === 0) {
+                    document.getElementById('newsList').innerHTML = '<p class="text-gray-500 text-sm">暂无相关新闻</p>';
+                    return;
+                }
+                
+                let html = '';
+                data.news.forEach(item => {
+                    const dateStr = item.date ? item.date.split('T')[0] : '';
+                    html += `<div class="border-b border-gray-700 pb-2 last:border-0">
+                        <div class="text-xs text-gray-500 mb-1">${dateStr} · ${item.source || '新闻'}</div>
+                        <a href="${item.url || '#'}" target="_blank" class="text-sm text-blue-400 hover:text-blue-300 transition">${item.title}</a>
+                    </div>`;
+                });
+                document.getElementById('newsList').innerHTML = html;
+            } catch (err) {
+                document.getElementById('newsList').innerHTML = '<p class="text-gray-500 text-sm">获取新闻失败</p>';
+                console.error('News load error:', err);
+            }
         }
 
         window.addEventListener('resize', function() {
@@ -875,11 +1476,16 @@
             if (volumeChart) volumeChart.resize();
             if (macdChart) macdChart.resize();
             if (kdjChart) kdjChart.resize();
+            if (dmiChart) dmiChart.resize();
+            if (marketChart) marketChart.resize();
         });
 
         document.getElementById('stockCode').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') analyzeStock();
         });
+
+        // 页面加载自动显示大盘K线
+        document.addEventListener('DOMContentLoaded', loadMarketKline);
     </script>
 </body>
 </html>
